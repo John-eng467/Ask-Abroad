@@ -13,7 +13,7 @@ export const countries: Country[] = [
   {
     id: "UK",
     name: "United Kingdom",
-    flag: "https://images.pexels.com/photos/272447/pexels-photo-272447.jpeg?auto=compress&cs=tinysrgb&w=800",
+    flag: "https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=600",
     code: "GB",
     activeUsers: 342,
     consultants: 45,
