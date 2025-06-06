@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, Lock, Menu, ArrowLeft } from 'lucide-react';
+import { Send, Lock, Menu, ArrowLeft, Plane, MapPin, Calendar, DollarSign, Star, Clock, Users as UsersIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { chatRooms } from '../data/chatData';
@@ -11,7 +11,7 @@ import { countries } from '../data/countries';
 const ChatRoomPage = () => {
   const { countryId } = useParams<{ countryId: string }>();
   const navigate = useNavigate();
-  const { authStatus, subscriptionStatus } = useAuth();
+  const { authStatus, subscriptionStatus, selectedService } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -22,6 +22,76 @@ const ChatRoomPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const country = countries.find(c => c.id === countryId);
+
+  // Flight booking data for travel service
+  const flightOptions = [
+    {
+      airline: 'British Airways',
+      route: 'Delhi → London',
+      price: '₹45,000',
+      duration: '8h 30m',
+      departure: '10:30 AM',
+      arrival: '3:00 PM',
+      stops: 'Non-stop',
+      rating: 4.5
+    },
+    {
+      airline: 'Air India',
+      route: 'Mumbai → London',
+      price: '₹42,500',
+      duration: '9h 15m',
+      departure: '2:15 AM',
+      arrival: '7:30 AM',
+      stops: 'Non-stop',
+      rating: 4.2
+    },
+    {
+      airline: 'Emirates',
+      route: 'Delhi → London',
+      price: '₹48,000',
+      duration: '9h 45m',
+      departure: '3:45 AM',
+      arrival: '8:30 AM',
+      stops: '1 stop (Dubai)',
+      rating: 4.8
+    }
+  ];
+
+  // Best places data for work service
+  const bestPlaces = [
+    {
+      name: 'Tower Bridge',
+      type: 'Landmark',
+      description: 'Iconic Victorian bridge with stunning city views',
+      rating: 4.6,
+      image: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=400',
+      distance: '2.5 km from city center'
+    },
+    {
+      name: 'Hyde Park',
+      type: 'Park',
+      description: 'Large royal park perfect for weekend relaxation',
+      rating: 4.4,
+      image: 'https://images.pexels.com/photos/1796730/pexels-photo-1796730.jpeg?auto=compress&cs=tinysrgb&w=400',
+      distance: '1.2 km from city center'
+    },
+    {
+      name: 'Covent Garden',
+      type: 'Shopping',
+      description: 'Historic market with shops, restaurants, and street performers',
+      rating: 4.3,
+      image: 'https://images.pexels.com/photos/1796736/pexels-photo-1796736.jpeg?auto=compress&cs=tinysrgb&w=400',
+      distance: '0.8 km from city center'
+    },
+    {
+      name: 'Thames River Cruise',
+      type: 'Activity',
+      description: 'Scenic boat ride along the historic Thames River',
+      rating: 4.7,
+      image: 'https://images.pexels.com/photos/1796737/pexels-photo-1796737.jpeg?auto=compress&cs=tinysrgb&w=400',
+      distance: 'Multiple departure points'
+    }
+  ];
 
   useEffect(() => {
     if (!countryId || !countries.some(c => c.id === countryId)) {
@@ -59,7 +129,7 @@ const ChatRoomPage = () => {
           sender: "You",
           content: message,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isBot: false
+          isConsultant: false
         }
       ];
 
@@ -89,7 +159,7 @@ const ChatRoomPage = () => {
             sender: "ChatBot",
             content: randomResponse,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isBot: true
+            isConsultant: true
           }
         ];
 
@@ -106,6 +176,9 @@ const ChatRoomPage = () => {
   if (!country) {
     return <div>Loading...</div>;
   }
+
+  const isTravel = selectedService === 'travel';
+  const isWork = selectedService === 'work';
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -131,11 +204,13 @@ const ChatRoomPage = () => {
                 <img src={country.flag} alt={country.name} className="h-full w-full object-cover" />
               </div>
               <div>
-                <h2 className="font-semibold">{country.name} Student Chat</h2>
+                <h2 className="font-semibold">
+                  {country.name} {selectedService ? selectedService.charAt(0).toUpperCase() + selectedService.slice(1) : 'Student'} Chat
+                </h2>
                 <p className="text-xs text-gray-400">
                   {currentChatRooms.length === 0
                     ? "No active chat rooms"
-                    : `${currentChatRooms[0].participants} students online`}
+                    : `${currentChatRooms[0]?.participants || 0} people online`}
                 </p>
               </div>
             </div>
@@ -280,6 +355,137 @@ const ChatRoomPage = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Travel Service - Flight Booking Section */}
+        {isTravel && (
+          <motion.div
+            className="mt-8 bg-gradient-to-br from-blue-900/50 to-purple-900/50 rounded-lg p-6 border border-blue-500/30"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div className="flex items-center mb-6">
+              <Plane className="h-6 w-6 text-blue-400 mr-3" />
+              <h2 className="text-2xl font-bold text-white">Flight Booking Options to {country.name}</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {flightOptions.map((flight, index) => (
+                <motion.div
+                  key={index}
+                  className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:border-blue-500/50 transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-white text-lg">{flight.airline}</h3>
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                      <span className="text-yellow-400 text-sm">{flight.rating}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center text-slate-300">
+                      <MapPin className="h-4 w-4 text-blue-400 mr-2" />
+                      <span className="text-sm">{flight.route}</span>
+                    </div>
+                    <div className="flex items-center text-slate-300">
+                      <Clock className="h-4 w-4 text-green-400 mr-2" />
+                      <span className="text-sm">{flight.duration} • {flight.stops}</span>
+                    </div>
+                    <div className="flex items-center text-slate-300">
+                      <Calendar className="h-4 w-4 text-purple-400 mr-2" />
+                      <span className="text-sm">{flight.departure} - {flight.arrival}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <DollarSign className="h-5 w-5 text-emerald-400 mr-1" />
+                      <span className="text-2xl font-bold text-emerald-400">{flight.price}</span>
+                    </div>
+                    <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-300">
+                      Book Now
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-slate-400 mb-4">
+                Compare prices and book directly with airlines or travel partners
+              </p>
+              <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300">
+                View More Flight Options
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Work Service - Best Places Section */}
+        {isWork && (
+          <motion.div
+            className="mt-8 bg-gradient-to-br from-emerald-900/50 to-teal-900/50 rounded-lg p-6 border border-emerald-500/30"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div className="flex items-center mb-6">
+              <MapPin className="h-6 w-6 text-emerald-400 mr-3" />
+              <h2 className="text-2xl font-bold text-white">Best Places to Visit in {country.name}</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {bestPlaces.map((place, index) => (
+                <motion.div
+                  key={index}
+                  className="bg-slate-800/50 backdrop-blur-sm rounded-xl overflow-hidden border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={place.image} 
+                      alt={place.name}
+                      className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded-full flex items-center">
+                      <Star className="h-3 w-3 text-yellow-400 mr-1" />
+                      <span className="text-yellow-400 text-xs">{place.rating}</span>
+                    </div>
+                    <div className="absolute top-2 left-2 bg-emerald-600/80 px-2 py-1 rounded-full">
+                      <span className="text-white text-xs font-medium">{place.type}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h3 className="font-bold text-white text-lg mb-2">{place.name}</h3>
+                    <p className="text-slate-400 text-sm mb-3">{place.description}</p>
+                    <div className="flex items-center text-slate-500 text-xs">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      <span>{place.distance}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-slate-400 mb-4">
+                Discover amazing places to explore during your work breaks and weekends
+              </p>
+              <button className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-300">
+                Explore More Destinations
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       <SubscriptionModal
