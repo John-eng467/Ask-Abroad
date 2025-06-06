@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import LoginSignupModal from './LoginSignupModal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,17 +12,17 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, countryId }) => {
-  const { login, loginAsGuest } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleLoginOrSignup = () => {
-    login();
-    onClose();
-    navigate(`/chat/${countryId}`);
+    setShowLoginModal(true);
   };
 
-  const handleGuestAccess = () => {
-    loginAsGuest();
+  const handleLoginSuccess = () => {
+    login('customer');
+    setShowLoginModal(false);
     onClose();
     navigate(`/chat/${countryId}`);
   };
@@ -44,62 +45,61 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, countryId }) => 
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
-      variants={backdropVariants}
-      initial="hidden"
-      animate="visible"
-      onClick={onClose}
-    >
-      <motion.div 
-        className="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md"
-        variants={modalVariants}
+    <>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+        variants={backdropVariants}
         initial="hidden"
         animate="visible"
-        transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={onClose}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Access Chat Room</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        <motion.div 
+          className="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md"
+          variants={modalVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-white">Access Chat Room</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-        <div className="mb-6">
-          <p className="text-gray-300 mb-4">Choose how you would like to access the chat room:</p>
-        </div>
+          <div className="mb-6">
+            <p className="text-gray-300 mb-4">Please login or sign up to access the chat room:</p>
+          </div>
 
-        <div className="space-y-4">
-          <motion.button
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center justify-center"
-            onClick={handleLoginOrSignup}
-            variants={buttonVariants}
-            whileHover="hover"
-            whileTap="tap"
-          >
-            Login / Sign Up
-          </motion.button>
-
-          <motion.button
-            className="w-full py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center"
-            onClick={handleGuestAccess}
-            variants={buttonVariants}
-            whileHover="hover"
-            whileTap="tap"
-          >
-            Continue as Guest
-          </motion.button>
-        </div>
-        
-        <p className="mt-4 text-xs text-gray-400 text-center">
-          Guest access provides limited functionality. Sign up for full access.
-        </p>
+          <div className="space-y-4">
+            <motion.button
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center justify-center"
+              onClick={handleLoginOrSignup}
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              Login / Sign Up
+            </motion.button>
+          </div>
+          
+          <p className="mt-4 text-xs text-gray-400 text-center">
+            Create an account to access all features and connect with experts.
+          </p>
+        </motion.div>
       </motion.div>
-    </motion.div>
+
+      <LoginSignupModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={handleLoginSuccess}
+        userType="customer"
+      />
+    </>
   );
 };
 

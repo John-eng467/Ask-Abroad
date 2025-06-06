@@ -3,17 +3,20 @@ import React, { createContext, useState, useContext } from 'react';
 type AuthStatus = 'guest' | 'authenticated' | 'none';
 type SubscriptionStatus = 'free' | 'premium';
 type ServiceType = 'study' | 'migration' | 'travel' | 'work';
+type UserRole = 'customer' | 'consultant' | 'resident';
 
 interface AuthContextType {
   authStatus: AuthStatus;
   subscriptionStatus: SubscriptionStatus;
   selectedService: ServiceType | null;
-  login: () => void;
+  userRole: UserRole | null;
+  login: (role?: UserRole) => void;
   signUp: () => void;
   loginAsGuest: () => void;
   logout: () => void;
   subscribe: () => void;
   setSelectedService: (service: ServiceType) => void;
+  setUserRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,9 +33,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authStatus, setAuthStatus] = useState<AuthStatus>('none');
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('free');
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  const login = () => {
+  const login = (role?: UserRole) => {
     setAuthStatus('authenticated');
+    if (role) {
+      setUserRole(role);
+    }
   };
 
   const signUp = () => {
@@ -47,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthStatus('none');
     setSubscriptionStatus('free');
     setSelectedService(null);
+    setUserRole(null);
   };
 
   const subscribe = () => {
@@ -59,12 +67,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authStatus,
         subscriptionStatus,
         selectedService,
+        userRole,
         login,
         signUp,
         loginAsGuest,
         logout,
         subscribe,
         setSelectedService,
+        setUserRole,
       }}
     >
       {children}
