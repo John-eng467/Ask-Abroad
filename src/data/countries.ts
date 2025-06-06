@@ -103,7 +103,7 @@ export const countries: Country[] = [
   {
     id: "NZ",
     name: "New Zealand",
-    flag: "https://images.pexels.com/photos/724963/pexels-photo-724963.jpeg?auto=compress&cs=tinysrgb&w=800",
+    flag: "https://images.pexels.com/photos/572689/pexels-photo-572689.jpeg?auto=compress&cs=tinysrgb&w=600",
     code: "NZ",
     activeUsers: 134,
     consultants: 18,
