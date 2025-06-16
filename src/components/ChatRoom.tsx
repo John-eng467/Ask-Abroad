@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, ArrowLeft, Users, Crown, Globe, AlertCircle, Reply, X, Sparkles } from 'lucide-react';
+import { Send, ArrowLeft, Users, Crown, Globe, AlertCircle, Reply, X, Sparkles, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { ref, push, onValue, query, orderByChild, startAt, set, remove, onDisconnect } from 'firebase/database';
+import { ref, push, onValue, query, orderByChild, startAt, set, remove, onDisconnect, update } from 'firebase/database';
 import { database } from '../config/firebase';
 import { Message, RoomUser } from '../types';
 import { countries } from '../data/countries';
@@ -19,6 +19,7 @@ const ChatRoom: React.FC = () => {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [highlightedMessage, setHighlightedMessage] = useState<string | null>(null);
+  const [messageTimers, setMessageTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
@@ -72,7 +73,15 @@ const ChatRoom: React.FC = () => {
           id: key,
           ...value
         }));
-        setMessages(messagesList.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+        const sortedMessages = messagesList.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        setMessages(sortedMessages);
+        
+        // Set up timers for new questions
+        sortedMessages.forEach(message => {
+          if (isQuestion(message.content) && !message.hasConsultantReply && !messageTimers[message.id]) {
+            setupMessageTimer(message);
+          }
+        });
       } else {
         setMessages([]);
       }
@@ -81,6 +90,8 @@ const ChatRoom: React.FC = () => {
     return () => {
       unsubscribeUsers();
       unsubscribeMessages();
+      // Clear all timers
+      Object.values(messageTimers).forEach(timer => clearTimeout(timer));
       // Remove user from room when component unmounts
       remove(userPresenceRef);
     };
@@ -114,6 +125,39 @@ const ChatRoom: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [highlightedMessage]);
+
+  const isQuestion = (content: string): boolean => {
+    return content.includes('?');
+  };
+
+  const setupMessageTimer = (message: Message) => {
+    if (!isQuestion(message.content) || message.hasConsultantReply) return;
+
+    const messageRef = ref(database, `messages/${countryCode}/${category}/${category === 'visa' ? 'visa' : 'general'}/${message.id}`);
+    
+    // First timer: 30 seconds - turn yellow
+    const timer1 = setTimeout(() => {
+      update(messageRef, { status: 'pending' });
+    }, 30000);
+
+    // Second timer: 60 seconds - turn orange
+    const timer2 = setTimeout(() => {
+      update(messageRef, { status: 'urgent' });
+    }, 60000);
+
+    // Third timer: 120 seconds - mark as unanswered
+    const timer3 = setTimeout(() => {
+      update(messageRef, { 
+        status: 'unanswered',
+        isUnanswered: true 
+      });
+    }, 120000);
+
+    setMessageTimers(prev => ({
+      ...prev,
+      [message.id]: timer3 // Store the final timer for cleanup
+    }));
+  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,9 +203,28 @@ const ChatRoom: React.FC = () => {
     };
 
     try {
+      const messageRef = await push(ref(database, `messages/${countryCode}/${category}/${roomType}`), message);
+      
+      // If this is a consultant reply to a question, mark the original question as answered
+      if (isConsultant && replyingTo && isQuestion(replyingTo.content)) {
+        const originalMessageRef = ref(database, `messages/${countryCode}/${category}/${roomType}/${replyingTo.id}`);
+        await update(originalMessageRef, { 
+          hasConsultantReply: true,
+          status: 'answered'
+        });
+        
+        // Clear timer for the original message
+        if (messageTimers[replyingTo.id]) {
+          clearTimeout(messageTimers[replyingTo.id]);
+          setMessageTimers(prev => {
+            const newTimers = { ...prev };
+            delete newTimers[replyingTo.id];
+            return newTimers;
+          });
+        }
+      }
+
       if (currentUser.isGuest) {
-        // For guest users, store message with guest ID
-        await push(ref(database, `messages/${countryCode}/${category}/${roomType}`), message);
         await incrementGuestMessageCount();
         
         // Check if this was the last message for guest
@@ -169,9 +232,6 @@ const ChatRoom: React.FC = () => {
         if (updatedMessageCount >= 5) {
           setShowGuestLimitModal(true);
         }
-      } else {
-        // For authenticated users
-        await push(ref(database, `messages/${countryCode}/${category}/${roomType}`), message);
       }
 
       setNewMessage('');
@@ -259,6 +319,23 @@ const ChatRoom: React.FC = () => {
         return 'Guest';
       default:
         return 'User';
+    }
+  };
+
+  const getMessageStatusColor = (message: Message) => {
+    if (!isQuestion(message.content) || message.hasConsultantReply) {
+      return '';
+    }
+
+    switch (message.status) {
+      case 'pending':
+        return 'bg-yellow-500/20 border-yellow-400/30';
+      case 'urgent':
+        return 'bg-orange-500/20 border-orange-400/30';
+      case 'unanswered':
+        return 'bg-red-500/20 border-red-400/30';
+      default:
+        return '';
     }
   };
 
@@ -448,6 +525,10 @@ const ChatRoom: React.FC = () => {
               messages.map((message) => {
                 const isOwn = isOwnMessage(message);
                 const isHighlighted = highlightedMessage === message.id;
+                const statusColor = getMessageStatusColor(message);
+                const isQuestionMessage = isQuestion(message.content);
+                const showUnansweredIcon = isQuestionMessage && message.isUnanswered;
+                
                 return (
                   <div
                     key={message.id}
@@ -506,10 +587,18 @@ const ChatRoom: React.FC = () => {
                           )}
 
                           {/* Message bubble */}
-                          <div className={`backdrop-blur-sm rounded-xl p-4 ${isOwn
+                          <div className={`backdrop-blur-sm rounded-xl p-4 ${statusColor} ${isOwn
                             ? 'bg-gradient-to-r from-blue-600/80 to-blue-500/80 text-white rounded-br-md'
                             : 'bg-white/10 text-white rounded-bl-md'
                             }`}>
+                            {/* Unanswered question indicator */}
+                            {showUnansweredIcon && (
+                              <div className="flex items-center space-x-2 mb-2 text-red-400">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-xs font-medium">Unanswered Question</span>
+                              </div>
+                            )}
+                            
                             <p className="text-sm leading-relaxed">
                               {message.content}
                             </p>
@@ -523,6 +612,11 @@ const ChatRoom: React.FC = () => {
                                 <Sparkles className="h-3 w-3 mr-1" />
                                 {Math.ceil((new Date(message.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60))}h
                               </span>
+                              {isQuestionMessage && !message.hasConsultantReply && (
+                                <span className="text-yellow-300 text-xs">
+                                  Awaiting expert reply
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

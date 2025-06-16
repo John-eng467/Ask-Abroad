@@ -28,6 +28,9 @@ export interface Message {
     senderName: string;
     content: string;
   };
+  hasConsultantReply?: boolean;
+  status?: 'pending' | 'urgent' | 'answered' | 'unanswered';
+  isUnanswered?: boolean;
 }
 
 export interface Country {

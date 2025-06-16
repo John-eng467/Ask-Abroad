@@ -8,6 +8,7 @@ import CategorySelection from './components/CategorySelection';
 import CountrySelection from './components/CountrySelection';
 import ChatRoom from './components/ChatRoom';
 import ProfileDashboard from './components/ProfileDashboard';
+import ConsultantDashboard from './components/ConsultantDashboard';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
@@ -17,6 +18,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
   return !currentUser ? <>{children}</> : <Navigate to="/setup" />;
+};
+
+const ConsultantRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  return currentUser && currentUser.userType === 'consultant' ? <>{children}</> : <Navigate to="/categories" />;
 };
 
 function AppContent() {
@@ -88,6 +94,15 @@ function AppContent() {
               <ProtectedRoute>
                 <ProfileDashboard />
               </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/consultant-dashboard" 
+            element={
+              <ConsultantRoute>
+                <ConsultantDashboard />
+              </ConsultantRoute>
             } 
           />
           
